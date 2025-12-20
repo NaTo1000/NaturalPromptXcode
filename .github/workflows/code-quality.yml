@@ -12,6 +12,8 @@ jobs:
     name: Swift Lint
     runs-on: macos-latest
     if: hashFiles('**/*.swift') != ''
+    permissions:
+      contents: read
     
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +40,8 @@ jobs:
     name: Markdown Lint
     runs-on: ubuntu-latest
     if: hashFiles('**/*.md') != ''
+    permissions:
+      contents: read
     
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +62,8 @@ jobs:
     name: YAML Lint
     runs-on: ubuntu-latest
     if: hashFiles('**/*.yml', '**/*.yaml') != ''
+    permissions:
+      contents: read
     
     steps:
       - uses: actions/checkout@v4
@@ -77,6 +83,9 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     
     steps:
       - uses: actions/checkout@v4
@@ -101,6 +110,9 @@ jobs:
     name: Dependency Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read
     
     steps:
       - uses: actions/checkout@v4
@@ -112,6 +124,8 @@ jobs:
   code-metrics:
     name: Code Metrics
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - uses: actions/checkout@v4

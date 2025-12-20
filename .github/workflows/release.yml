@@ -77,6 +77,8 @@ jobs:
   build-artifacts:
     name: Build Release Artifacts
     needs: create-release
+    permissions:
+      contents: write
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]

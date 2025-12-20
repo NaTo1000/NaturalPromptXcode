@@ -10,6 +10,8 @@ jobs:
   dependency-check:
     name: Dependency Update Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code
@@ -53,6 +55,8 @@ jobs:
   repo-health-check:
     name: Repository Health Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code
@@ -121,6 +125,8 @@ jobs:
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code

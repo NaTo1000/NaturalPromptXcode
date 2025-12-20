@@ -69,6 +69,8 @@ jobs:
   build:
     name: Build and Test
     runs-on: macos-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code

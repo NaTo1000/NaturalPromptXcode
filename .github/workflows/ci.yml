@@ -11,6 +11,8 @@ jobs:
   detect-project-type:
     name: Detect Project Type
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       is-swift: ${{ steps.detect.outputs.is-swift }}
       is-nodejs: ${{ steps.detect.outputs.is-nodejs }}
@@ -64,6 +66,8 @@ jobs:
     needs: detect-project-type
     if: needs.detect-project-type.outputs.is-swift == 'true'
     runs-on: macos-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         xcode-version: ['14.3.1', '15.0']
@@ -102,6 +106,8 @@ jobs:
     needs: detect-project-type
     if: needs.detect-project-type.outputs.is-nodejs == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         node-version: [16.x, 18.x, 20.x]
@@ -131,6 +137,8 @@ jobs:
     needs: detect-project-type
     if: needs.detect-project-type.outputs.is-python == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
@@ -165,6 +173,8 @@ jobs:
     needs: detect-project-type
     if: needs.detect-project-type.outputs.is-java == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         java-version: ['11', '17', '21']
@@ -190,6 +200,8 @@ jobs:
     needs: detect-project-type
     if: needs.detect-project-type.outputs.is-go == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         go-version: ['1.19', '1.20', '1.21']
@@ -210,6 +222,8 @@ jobs:
   general-checks:
     name: General Repository Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:

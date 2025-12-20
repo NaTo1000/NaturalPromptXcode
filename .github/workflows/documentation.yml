@@ -14,6 +14,8 @@ jobs:
     name: Generate Documentation
     runs-on: macos-latest
     if: hashFiles('**/*.swift') != ''
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code
@@ -50,6 +52,8 @@ jobs:
     name: Validate Markdown
     runs-on: ubuntu-latest
     if: hashFiles('**/*.md') != ''
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code
@@ -94,6 +98,8 @@ jobs:
   api-documentation:
     name: API Documentation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code
