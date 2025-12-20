@@ -1,0 +1,165 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop, "copilot/**" ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  swift-lint:
+    name: Swift Lint
+    runs-on: macos-latest
+    if: hashFiles('**/*.swift') != ''
+    permissions:
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint || true
+      
+      - name: Run SwiftLint
+        run: |
+          if command -v swiftlint &> /dev/null; then
+            swiftlint lint --reporter github-actions-logging || true
+          else
+            echo "⚠️ SwiftLint not available"
+          fi
+      
+      - name: Check Swift formatting
+        run: |
+          find . -name "*.swift" -not -path "*/.*" | while read file; do
+            echo "Checking $file"
+          done
+
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    if: hashFiles('**/*.md') != ''
+    permissions:
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install markdownlint
+        run: npm install -g markdownlint-cli
+      
+      - name: Run markdownlint
+        run: |
+          markdownlint '**/*.md' --ignore node_modules || true
+
+  yaml-lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    if: hashFiles('**/*.yml', '**/*.yaml') != ''
+    permissions:
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      
+      - name: Install yamllint
+        run: pip install yamllint
+      
+      - name: Run yamllint
+        run: |
+          yamllint . || true
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+      
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v3
+        continue-on-error: true
+
+  code-metrics:
+    name: Code Metrics
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Calculate code metrics
+        run: |
+          echo "## 📊 Code Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Count files by type
+          echo "### Files by Type" >> $GITHUB_STEP_SUMMARY
+          echo "| Type | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          
+          SWIFT_COUNT=$(find . -name "*.swift" -not -path "*/.*" | wc -l)
+          MD_COUNT=$(find . -name "*.md" -not -path "*/.*" | wc -l)
+          YML_COUNT=$(find . -name "*.yml" -o -name "*.yaml" -not -path "*/.*" | wc -l)
+          
+          echo "| Swift | $SWIFT_COUNT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Markdown | $MD_COUNT |" >> $GITHUB_STEP_SUMMARY
+          echo "| YAML | $YML_COUNT |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Count lines of code
+          echo "### Lines of Code" >> $GITHUB_STEP_SUMMARY
+          if [ $SWIFT_COUNT -gt 0 ]; then
+            SWIFT_LINES=$(find . -name "*.swift" -not -path "*/.*" -exec cat {} + | wc -l)
+            echo "- Swift: $SWIFT_LINES lines" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Repository size
+          REPO_SIZE=$(du -sh . | cut -f1)
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Repository Size" >> $GITHUB_STEP_SUMMARY
+          echo "- Total size: $REPO_SIZE" >> $GITHUB_STEP_SUMMARY

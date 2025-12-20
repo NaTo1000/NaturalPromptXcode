@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "## What's Changed" > CHANGELOG.txt
+          echo "" >> CHANGELOG.txt
+          
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            echo "First release! 🎉" >> CHANGELOG.txt
+            git log --pretty=format:"- %s (%h)" >> CHANGELOG.txt
+          else
+            echo "Changes since $PREV_TAG:" >> CHANGELOG.txt
+            echo "" >> CHANGELOG.txt
+            git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG.txt
+          fi
+          
+          cat CHANGELOG.txt
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: CHANGELOG.txt
+          draft: false
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-artifacts:
+    name: Build Release Artifacts
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Build Swift Package (macOS)
+        if: runner.os == 'macOS' && hashFiles('Package.swift') != ''
+        run: |
+          swift build -c release
+          mkdir -p artifacts
+          find .build/release -type f -perm +111 -not -name "*.dylib" -not -name "*.so" -exec cp {} artifacts/ \; || true
+      
+      - name: Create archive
+        if: hashFiles('artifacts/*') != ''
+        run: |
+          cd artifacts
+          tar -czf ../release-${{ matrix.os }}.tar.gz *
+      
+      - name: Upload artifacts
+        if: hashFiles('release-*.tar.gz') != ''
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.create-release.outputs.version }}
+          files: release-*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

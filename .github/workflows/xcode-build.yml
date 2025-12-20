@@ -1,0 +1,196 @@
+name: Xcode Build
+
+on:
+  workflow_call:
+    inputs:
+      xcode-version:
+        description: 'Xcode version to use'
+        required: false
+        type: string
+        default: '15.0'
+      scheme:
+        description: 'Xcode scheme to build'
+        required: false
+        type: string
+        default: ''
+      configuration:
+        description: 'Build configuration (Debug/Release)'
+        required: false
+        type: string
+        default: 'Debug'
+      platform:
+        description: 'Platform to build for'
+        required: false
+        type: string
+        default: 'iOS Simulator'
+      run-tests:
+        description: 'Whether to run tests'
+        required: false
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      xcode-version:
+        description: 'Xcode version to use'
+        required: false
+        type: string
+        default: '15.0'
+      scheme:
+        description: 'Xcode scheme to build'
+        required: false
+        type: string
+        default: ''
+      configuration:
+        description: 'Build configuration'
+        required: false
+        type: choice
+        options:
+          - Debug
+          - Release
+        default: 'Debug'
+      platform:
+        description: 'Platform to build for'
+        required: false
+        type: choice
+        options:
+          - iOS Simulator
+          - iOS
+          - macOS
+          - tvOS
+          - watchOS
+        default: 'iOS Simulator'
+      run-tests:
+        description: 'Run tests'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Select Xcode version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ inputs.xcode-version }}.app/Contents/Developer || \
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+      
+      - name: Detect project structure
+        id: detect
+        run: |
+          # Find workspace or project
+          WORKSPACE=$(find . -maxdepth 2 -name "*.xcworkspace" | head -n 1)
+          PROJECT=$(find . -maxdepth 2 -name "*.xcodeproj" | head -n 1)
+          SWIFT_PACKAGE=$(find . -maxdepth 1 -name "Package.swift" | head -n 1)
+          
+          if [ -n "$SWIFT_PACKAGE" ]; then
+            echo "type=swift-package" >> $GITHUB_OUTPUT
+            echo "✅ Detected Swift Package"
+          elif [ -n "$WORKSPACE" ]; then
+            echo "type=workspace" >> $GITHUB_OUTPUT
+            echo "path=$WORKSPACE" >> $GITHUB_OUTPUT
+            echo "✅ Detected Xcode Workspace: $WORKSPACE"
+          elif [ -n "$PROJECT" ]; then
+            echo "type=project" >> $GITHUB_OUTPUT
+            echo "path=$PROJECT" >> $GITHUB_OUTPUT
+            echo "✅ Detected Xcode Project: $PROJECT"
+          else
+            echo "type=none" >> $GITHUB_OUTPUT
+            echo "⚠️ No Xcode project structure found"
+            exit 1
+          fi
+      
+      - name: List available schemes
+        if: steps.detect.outputs.type != 'swift-package'
+        id: schemes
+        run: |
+          if [ "${{ steps.detect.outputs.type }}" == "workspace" ]; then
+            SCHEMES=$(xcodebuild -workspace "${{ steps.detect.outputs.path }}" -list | grep -A 100 "Schemes:" | tail -n +2)
+          else
+            SCHEMES=$(xcodebuild -project "${{ steps.detect.outputs.path }}" -list | grep -A 100 "Schemes:" | tail -n +2)
+          fi
+          echo "Available schemes:"
+          echo "$SCHEMES"
+          
+          # Get first scheme if none specified
+          if [ -z "${{ inputs.scheme }}" ]; then
+            FIRST_SCHEME=$(echo "$SCHEMES" | head -n 1 | xargs)
+            echo "scheme=$FIRST_SCHEME" >> $GITHUB_OUTPUT
+          else
+            echo "scheme=${{ inputs.scheme }}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build Swift Package
+        if: steps.detect.outputs.type == 'swift-package'
+        run: |
+          swift build -c ${{ inputs.configuration == 'Release' && 'release' || 'debug' }}
+      
+      - name: Build Workspace
+        if: steps.detect.outputs.type == 'workspace'
+        run: |
+          xcodebuild \
+            -workspace "${{ steps.detect.outputs.path }}" \
+            -scheme "${{ steps.schemes.outputs.scheme }}" \
+            -configuration ${{ inputs.configuration }} \
+            -destination "platform=${{ inputs.platform }}" \
+            clean build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
+      
+      - name: Build Project
+        if: steps.detect.outputs.type == 'project'
+        run: |
+          xcodebuild \
+            -project "${{ steps.detect.outputs.path }}" \
+            -scheme "${{ steps.schemes.outputs.scheme }}" \
+            -configuration ${{ inputs.configuration }} \
+            -destination "platform=${{ inputs.platform }}" \
+            clean build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
+      
+      - name: Run Swift Package Tests
+        if: steps.detect.outputs.type == 'swift-package' && inputs.run-tests
+        run: |
+          swift test
+      
+      - name: Run Workspace Tests
+        if: steps.detect.outputs.type == 'workspace' && inputs.run-tests
+        run: |
+          xcodebuild \
+            -workspace "${{ steps.detect.outputs.path }}" \
+            -scheme "${{ steps.schemes.outputs.scheme }}" \
+            -configuration ${{ inputs.configuration }} \
+            -destination "platform=${{ inputs.platform }}" \
+            test \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
+      
+      - name: Run Project Tests
+        if: steps.detect.outputs.type == 'project' && inputs.run-tests
+        run: |
+          xcodebuild \
+            -project "${{ steps.detect.outputs.path }}" \
+            -scheme "${{ steps.schemes.outputs.scheme }}" \
+            -configuration ${{ inputs.configuration }} \
+            -destination "platform=${{ inputs.platform }}" \
+            test \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
+      
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcode-build-logs
+          path: |
+            ~/Library/Logs/DiagnosticReports/
+            *.log
+          if-no-files-found: ignore
