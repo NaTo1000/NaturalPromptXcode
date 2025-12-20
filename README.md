@@ -57,26 +57,26 @@ pip install -e .
 
 ```bash
 # Simple counter app
-python src/main.py "Create a simple counter app with increment and decrement buttons"
+python naturalpromptxcode.py "Create a simple counter app with increment and decrement buttons"
 
 # Todo list app
-python src/main.py "Build a todo list app where users can add and complete tasks"
+python naturalpromptxcode.py "Build a todo list app where users can add and complete tasks"
 
 # Weather app
-python src/main.py "Create a weather app that shows temperature and conditions"
+python naturalpromptxcode.py "Create a weather app that shows temperature and conditions"
 ```
 
 ### Advanced Usage
 
 ```bash
 # Specify output directory and framework
-python src/main.py "Create a photo gallery app" \
+python naturalpromptxcode.py "Create a photo gallery app" \
   --output-dir ~/Projects/PhotoApp \
   --ui-framework uikit \
   --verbose
 
 # Generate without building (dry-run)
-python src/main.py "Create a calculator app" --dry-run
+python naturalpromptxcode.py "Create a calculator app" --dry-run
 ```
 
 ## 📖 Documentation
@@ -115,21 +115,21 @@ NaturalPromptXcode/
 
 ### Counter App
 ```bash
-python src/main.py "Create a counter app with increment and decrement buttons"
+python naturalpromptxcode.py "Create a counter app with increment and decrement buttons"
 ```
 
 Generates a SwiftUI app with state management and button actions.
 
 ### Todo List
 ```bash
-python src/main.py "Create a todo list where users can add, complete, and delete tasks"
+python naturalpromptxcode.py "Create a todo list where users can add, complete, and delete tasks"
 ```
 
 Generates a list-based app with CRUD operations and state persistence.
 
 ### Weather Display
 ```bash
-python src/main.py "Create a weather app showing temperature and conditions"
+python naturalpromptxcode.py "Create a weather app showing temperature and conditions"
 ```
 
 Generates an app with data display and icon representations.

@@ -43,7 +43,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "naturalpromptxcode=main:main",
+            "naturalpromptxcode=src.main:main",
         ],
     },
 )

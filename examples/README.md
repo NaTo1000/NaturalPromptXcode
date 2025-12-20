@@ -6,7 +6,7 @@ This directory contains example prompts you can use with NaturalPromptXcode.
 
 ### Counter App
 ```bash
-python src/main.py "Create a simple counter app with increment and decrement buttons"
+python naturalpromptxcode.py "Create a simple counter app with increment and decrement buttons"
 ```
 
 **Description**: Generates a basic counter app with two buttons and a display label.
@@ -21,7 +21,7 @@ python src/main.py "Create a simple counter app with increment and decrement but
 
 ### Todo List
 ```bash
-python src/main.py "Build a todo list app where users can add, complete, and delete tasks"
+python naturalpromptxcode.py "Build a todo list app where users can add, complete, and delete tasks"
 ```
 
 **Description**: Creates a task management app with full CRUD operations.
@@ -37,7 +37,7 @@ python src/main.py "Build a todo list app where users can add, complete, and del
 
 ### Weather Display
 ```bash
-python src/main.py "Create a weather app that shows current temperature and conditions"
+python naturalpromptxcode.py "Create a weather app that shows current temperature and conditions"
 ```
 
 **Description**: Generates a weather information display app.
@@ -54,7 +54,7 @@ python src/main.py "Create a weather app that shows current temperature and cond
 
 ### Note Taking App
 ```bash
-python src/main.py "Create a note-taking app where users can create, edit, and delete notes with titles and content"
+python naturalpromptxcode.py "Create a note-taking app where users can create, edit, and delete notes with titles and content"
 ```
 
 **Expected Features**:
@@ -69,7 +69,7 @@ python src/main.py "Create a note-taking app where users can create, edit, and d
 
 ### Timer App
 ```bash
-python src/main.py "Build a countdown timer app with start, pause, and reset buttons"
+python naturalpromptxcode.py "Build a countdown timer app with start, pause, and reset buttons"
 ```
 
 **Expected Features**:
@@ -83,7 +83,7 @@ python src/main.py "Build a countdown timer app with start, pause, and reset but
 
 ### Calculator
 ```bash
-python src/main.py "Create a basic calculator app with addition, subtraction, multiplication, and division"
+python naturalpromptxcode.py "Create a basic calculator app with addition, subtraction, multiplication, and division"
 ```
 
 **Expected Features**:
@@ -99,7 +99,7 @@ python src/main.py "Create a basic calculator app with addition, subtraction, mu
 
 ### Photo Gallery
 ```bash
-python src/main.py "Create a photo gallery app that displays images in a grid layout with detail view"
+python naturalpromptxcode.py "Create a photo gallery app that displays images in a grid layout with detail view"
 ```
 
 **Expected Features**:
@@ -113,7 +113,7 @@ python src/main.py "Create a photo gallery app that displays images in a grid la
 
 ### Settings Screen
 ```bash
-python src/main.py "Build a settings screen with toggle switches for notifications, dark mode, and a slider for font size"
+python naturalpromptxcode.py "Build a settings screen with toggle switches for notifications, dark mode, and a slider for font size"
 ```
 
 **Expected Features**:
@@ -127,7 +127,7 @@ python src/main.py "Build a settings screen with toggle switches for notificatio
 
 ### Login Form
 ```bash
-python src/main.py "Create a login screen with email and password fields, validation, and a login button"
+python naturalpromptxcode.py "Create a login screen with email and password fields, validation, and a login button"
 ```
 
 **Expected Features**:
@@ -162,12 +162,12 @@ python src/main.py "Create a login screen with email and password fields, valida
 
 ### Basic Usage
 ```bash
-python src/main.py "YOUR_PROMPT_HERE"
+python naturalpromptxcode.py "YOUR_PROMPT_HERE"
 ```
 
 ### With Options
 ```bash
-python src/main.py "YOUR_PROMPT_HERE" \
+python naturalpromptxcode.py "YOUR_PROMPT_HERE" \
   --output-dir ~/Projects/MyApp \
   --ui-framework swiftui \
   --verbose
@@ -175,7 +175,7 @@ python src/main.py "YOUR_PROMPT_HERE" \
 
 ### Dry Run (Generate Only)
 ```bash
-python src/main.py "YOUR_PROMPT_HERE" --dry-run
+python naturalpromptxcode.py "YOUR_PROMPT_HERE" --dry-run
 ```
 
 ## Experiment and Iterate

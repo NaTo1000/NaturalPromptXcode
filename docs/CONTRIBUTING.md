@@ -63,7 +63,7 @@ python -m pytest tests/
 python -m pylint src/
 
 # Test manually
-python src/main.py "test prompt"
+python naturalpromptxcode.py "test prompt"
 ```
 
 #### 5. Submit a Pull Request

@@ -3,10 +3,7 @@
 from typing import List, Dict, Any
 from dataclasses import dataclass, field
 
-try:
-    from ..nlp.parser import AppRequirements
-except ImportError:
-    from nlp.parser import AppRequirements
+from ..nlp.parser import AppRequirements
 
 
 @dataclass

@@ -41,13 +41,13 @@ Or configure local model settings in `config.yaml`.
 ### Example 1: Simple Counter App
 
 ```bash
-python src/main.py "Create a simple counter app with increment and decrement buttons"
+python naturalpromptxcode.py "Create a simple counter app with increment and decrement buttons"
 ```
 
 ### Example 2: Weather App
 
 ```bash
-python src/main.py "Build a weather app that shows current temperature and conditions"
+python naturalpromptxcode.py "Build a weather app that shows current temperature and conditions"
 ```
 
 ## Project Structure

@@ -5,10 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-try:
-    from ..codegen.generator import ProjectStructure
-except ImportError:
-    from codegen.generator import ProjectStructure
+from ..codegen.generator import ProjectStructure
 
 
 class XcodeProjectBuilder:

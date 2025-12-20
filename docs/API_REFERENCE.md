@@ -5,7 +5,7 @@
 ### Main Command
 
 ```bash
-python src/main.py [OPTIONS] PROMPT
+python naturalpromptxcode.py [OPTIONS] PROMPT
 ```
 
 #### Arguments
@@ -25,10 +25,10 @@ python src/main.py [OPTIONS] PROMPT
 
 ```bash
 # Basic usage
-python src/main.py "Create a todo list app"
+python naturalpromptxcode.py "Create a todo list app"
 
 # With options
-python src/main.py "Create a photo gallery app" \
+python naturalpromptxcode.py "Create a photo gallery app" \
   --output-dir ~/Projects/PhotoApp \
   --ui-framework uikit \
   --verbose
