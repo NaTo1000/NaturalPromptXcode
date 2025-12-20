@@ -81,8 +81,9 @@ final class NaturalPromptXcodeTests: XCTestCase {
     }
     
     func testDetectProjectsReturnsArray() {
-        // This test just verifies the method returns without crashing
-        let projects = processor.detectProjects()
+        // This test verifies the method returns without crashing
+        // and uses the default path parameter explicitly
+        let projects = processor.detectProjects(at: ".")
         XCTAssertNotNil(projects)
     }
     
