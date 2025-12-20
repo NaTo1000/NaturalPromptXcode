@@ -9,10 +9,20 @@ import sys
 import os
 from pathlib import Path
 
-from .nlp.parser import PromptParser
-from .codegen.generator import CodeGenerator
-from .builder.xcode import XcodeProjectBuilder
-from .config import Config
+# Add parent directory to path for imports when run as script
+if __name__ == "__main__":
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    from .nlp.parser import PromptParser
+    from .codegen.generator import CodeGenerator
+    from .builder.xcode import XcodeProjectBuilder
+    from .config import Config
+except ImportError:
+    from nlp.parser import PromptParser
+    from codegen.generator import CodeGenerator
+    from builder.xcode import XcodeProjectBuilder
+    from config import Config
 
 
 def main():
