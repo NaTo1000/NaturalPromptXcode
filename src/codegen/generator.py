@@ -168,13 +168,13 @@ struct ContentView_Previews: PreviewProvider {{
     }"""
         
         else:
-            return """    var body: some View {
-        VStack {
-            Text("Welcome to {}")
+            return f"""    var body: some View {{
+        VStack {{
+            Text("Welcome to {requirements.app_name}")
                 .font(.largeTitle)
                 .padding()
-        }
-    }""".format(requirements.app_name)
+        }}
+    }}"""
     
     def _generate_uikit_app_delegate(self, requirements: AppRequirements) -> ProjectFile:
         """Generate UIKit AppDelegate."""
