@@ -1,0 +1,150 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/*.swift'
+      - '**/*.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  generate-docs:
+    name: Generate Documentation
+    runs-on: macos-latest
+    if: hashFiles('**/*.swift') != ''
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Swift-DocC
+        run: |
+          # Swift-DocC is included with Xcode 13.3+
+          xcodebuild -version
+      
+      - name: Generate Swift documentation
+        run: |
+          if [ -f "Package.swift" ]; then
+            echo "Generating Swift package documentation..."
+            swift package generate-documentation || echo "Documentation generation skipped"
+          fi
+      
+      - name: Build documentation archive
+        run: |
+          if [ -f "Package.swift" ]; then
+            swift build --target $(swift package describe --type json | python3 -c "import sys, json; print(json.load(sys.stdin)['targets'][0]['name'])" 2>/dev/null || echo "main") || true
+          fi
+      
+      - name: Upload documentation artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: documentation
+          path: |
+            .build/plugins/Swift-DocC/outputs
+            docs/
+          if-no-files-found: ignore
+
+  validate-markdown:
+    name: Validate Markdown
+    runs-on: ubuntu-latest
+    if: hashFiles('**/*.md') != ''
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check markdown links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          config-file: '.github/markdown-link-check-config.json'
+        continue-on-error: true
+      
+      - name: Validate README structure
+        run: |
+          echo "## 📄 README Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "README.md" ]; then
+            # Check for common sections
+            HAS_TITLE=$(grep -c "^#" README.md || echo "0")
+            HAS_DESCRIPTION=$(grep -ci "description\|overview\|about" README.md || echo "0")
+            HAS_INSTALL=$(grep -ci "install\|setup\|getting started" README.md || echo "0")
+            HAS_USAGE=$(grep -ci "usage\|example\|how to use" README.md || echo "0")
+            HAS_LICENSE=$(grep -ci "license" README.md || echo "0")
+            
+            echo "| Section | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Title | $([ $HAS_TITLE -gt 0 ] && echo '✅' || echo '❌') |" >> $GITHUB_STEP_SUMMARY
+            echo "| Description | $([ $HAS_DESCRIPTION -gt 0 ] && echo '✅' || echo '⚠️') |" >> $GITHUB_STEP_SUMMARY
+            echo "| Installation | $([ $HAS_INSTALL -gt 0 ] && echo '✅' || echo '⚠️') |" >> $GITHUB_STEP_SUMMARY
+            echo "| Usage | $([ $HAS_USAGE -gt 0 ] && echo '✅' || echo '⚠️') |" >> $GITHUB_STEP_SUMMARY
+            echo "| License | $([ $HAS_LICENSE -gt 0 ] && echo '✅' || echo '⚠️') |" >> $GITHUB_STEP_SUMMARY
+            
+            # Count lines
+            LINES=$(wc -l < README.md)
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "README.md has $LINES lines" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ README.md not found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  api-documentation:
+    name: API Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create documentation index
+        run: |
+          mkdir -p docs
+          
+          cat > docs/README.md << 'EOF'
+          # NaturalPromptXcode Documentation
+          
+          Welcome to the NaturalPromptXcode documentation!
+          
+          ## Overview
+          
+          NaturalPromptXcode is a natural language prompt to code tool for Xcode building commands.
+          
+          ## Quick Start
+          
+          Get started with NaturalPromptXcode by following these steps:
+          
+          1. Clone the repository
+          2. Review the available workflows
+          3. Start building!
+          
+          ## Workflows
+          
+          This project includes several CI/CD workflows:
+          
+          - **CI**: Continuous Integration with automatic project type detection
+          - **Code Quality**: Linting, security scanning, and code metrics
+          - **Release**: Automated release creation
+          - **Scheduled Maintenance**: Regular health checks and dependency updates
+          - **Documentation**: Automatic documentation generation
+          
+          ## Contributing
+          
+          Contributions are welcome! Please feel free to submit a Pull Request.
+          
+          ## License
+          
+          See LICENSE file for details.
+          EOF
+          
+          echo "✅ Documentation index created"
+      
+      - name: Commit documentation
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add docs/ || true
+          git diff --staged --quiet || git commit -m "docs: Update documentation [skip ci]" || true
+        continue-on-error: true

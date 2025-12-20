@@ -1,0 +1,238 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop, "copilot/**" ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  detect-project-type:
+    name: Detect Project Type
+    runs-on: ubuntu-latest
+    outputs:
+      is-swift: ${{ steps.detect.outputs.is-swift }}
+      is-nodejs: ${{ steps.detect.outputs.is-nodejs }}
+      is-python: ${{ steps.detect.outputs.is-python }}
+      is-java: ${{ steps.detect.outputs.is-java }}
+      is-go: ${{ steps.detect.outputs.is-go }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Detect project type
+        id: detect
+        run: |
+          echo "is-swift=false" >> $GITHUB_OUTPUT
+          echo "is-nodejs=false" >> $GITHUB_OUTPUT
+          echo "is-python=false" >> $GITHUB_OUTPUT
+          echo "is-java=false" >> $GITHUB_OUTPUT
+          echo "is-go=false" >> $GITHUB_OUTPUT
+          
+          # Detect Swift/Xcode project
+          if [ -f "Package.swift" ] || [ -n "$(find . -name '*.xcodeproj' -o -name '*.xcworkspace' 2>/dev/null)" ]; then
+            echo "is-swift=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected Swift/Xcode project"
+          fi
+          
+          # Detect Node.js project
+          if [ -f "package.json" ]; then
+            echo "is-nodejs=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected Node.js project"
+          fi
+          
+          # Detect Python project
+          if [ -f "setup.py" ] || [ -f "pyproject.toml" ] || [ -f "requirements.txt" ]; then
+            echo "is-python=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected Python project"
+          fi
+          
+          # Detect Java project
+          if [ -f "pom.xml" ] || [ -f "build.gradle" ] || [ -f "build.gradle.kts" ]; then
+            echo "is-java=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected Java project"
+          fi
+          
+          # Detect Go project
+          if [ -f "go.mod" ]; then
+            echo "is-go=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected Go project"
+          fi
+
+  swift-ci:
+    name: Swift/Xcode CI
+    needs: detect-project-type
+    if: needs.detect-project-type.outputs.is-swift == 'true'
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        xcode-version: ['14.3.1', '15.0']
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode-version }}.app/Contents/Developer
+      
+      - name: Build Swift package
+        if: hashFiles('Package.swift') != ''
+        run: swift build
+      
+      - name: Run Swift tests
+        if: hashFiles('Package.swift') != ''
+        run: swift test
+      
+      - name: Build Xcode project
+        if: hashFiles('**/*.xcodeproj') != ''
+        run: |
+          PROJECT=$(find . -name "*.xcodeproj" | head -n 1)
+          if [ -n "$PROJECT" ]; then
+            xcodebuild -project "$PROJECT" -scheme "$(xcodebuild -project "$PROJECT" -list | grep -A 1 "Schemes:" | tail -n 1 | xargs)" build
+          fi
+      
+      - name: Build Xcode workspace
+        if: hashFiles('**/*.xcworkspace') != ''
+        run: |
+          WORKSPACE=$(find . -name "*.xcworkspace" | head -n 1)
+          if [ -n "$WORKSPACE" ]; then
+            xcodebuild -workspace "$WORKSPACE" -scheme "$(xcodebuild -workspace "$WORKSPACE" -list | grep -A 1 "Schemes:" | tail -n 1 | xargs)" build
+          fi
+
+  nodejs-ci:
+    name: Node.js CI
+    needs: detect-project-type
+    if: needs.detect-project-type.outputs.is-nodejs == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x, 20.x]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint --if-present
+      
+      - name: Build
+        run: npm run build --if-present
+      
+      - name: Run tests
+        run: npm test --if-present
+
+  python-ci:
+    name: Python CI
+    needs: detect-project-type
+    if: needs.detect-project-type.outputs.is-python == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+      
+      - name: Run linter
+        run: |
+          pip install flake8
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+      
+      - name: Run tests
+        run: |
+          if [ -f pytest.ini ] || [ -d tests ]; then
+            pip install pytest
+            pytest
+          fi
+
+  java-ci:
+    name: Java CI
+    needs: detect-project-type
+    if: needs.detect-project-type.outputs.is-java == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java-version: ['11', '17', '21']
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+      
+      - name: Build with Maven
+        if: hashFiles('pom.xml') != ''
+        run: mvn clean verify
+      
+      - name: Build with Gradle
+        if: hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != ''
+        run: ./gradlew build
+
+  go-ci:
+    name: Go CI
+    needs: detect-project-type
+    if: needs.detect-project-type.outputs.is-go == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.19', '1.20', '1.21']
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+      
+      - name: Build
+        run: go build -v ./...
+      
+      - name: Run tests
+        run: go test -v ./...
+
+  general-checks:
+    name: General Repository Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check for README
+        run: |
+          if [ ! -f README.md ]; then
+            echo "⚠️ Warning: No README.md found"
+            exit 1
+          fi
+          echo "✅ README.md exists"
+      
+      - name: Check for LICENSE
+        run: |
+          if [ ! -f LICENSE ] && [ ! -f LICENSE.md ] && [ ! -f LICENSE.txt ]; then
+            echo "⚠️ Warning: No LICENSE file found"
+          else
+            echo "✅ LICENSE file exists"
+          fi
+      
+      - name: Count lines of code
+        run: |
+          echo "📊 Repository Statistics:"
+          echo "Total files: $(find . -type f ! -path '*/\.*' | wc -l)"
+          echo "Lines of code: $(find . -type f ! -path '*/\.*' -exec cat {} + 2>/dev/null | wc -l)"
