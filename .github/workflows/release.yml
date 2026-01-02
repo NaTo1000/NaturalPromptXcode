@@ -101,8 +101,9 @@ jobs:
           for file in *.tar.gz *.whl 2>/dev/null; do
             if [ -f "$file" ]; then
               echo "Signing $file..."
-              gpg --batch --yes --pinentry-mode loopback \
-                --passphrase "$GPG_PASSPHRASE" \
+              # Use passphrase-fd for better security (doesn't expose in process list)
+              echo "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+                --passphrase-fd 0 \
                 ${GPG_KEY_ID:+--local-user "$GPG_KEY_ID"} \
                 --detach-sign --armor "$file"
               

@@ -197,6 +197,9 @@ class TestGPG:
             test_file.write_text("Test content for GPG signing")
             
             # Generate a test GPG key (unattended)
+            # NOTE: %no-protection creates a key without a passphrase - this is
+            # appropriate for testing only. Production keys should ALWAYS have
+            # strong passphrases for security.
             key_batch = """
                 %no-protection
                 Key-Type: RSA

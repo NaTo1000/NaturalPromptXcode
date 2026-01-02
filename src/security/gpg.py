@@ -1,5 +1,6 @@
 """GPG signature verification and signing utilities."""
 
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -142,22 +143,32 @@ def sign_with_gpg(file_path: Union[str, Path],
     # Import private key if provided
     if private_key_data:
         try:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.key', delete=False) as f:
-                f.write(private_key_data)
-                temp_key_file = f.name
-            
-            result = subprocess.run(
-                ['gpg', '--batch', '--import', temp_key_file],
-                capture_output=True,
-                timeout=10
+            # Create temp file with secure permissions (0o600 = rw-------)
+            fd = os.open(
+                tempfile.gettempdir() + '/gpg_key_' + os.urandom(8).hex() + '.key',
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                0o600
             )
+            temp_key_file = None
+            try:
+                with os.fdopen(fd, 'w') as f:
+                    f.write(private_key_data)
+                    temp_key_file = f.name
+                
+                result = subprocess.run(
+                    ['gpg', '--batch', '--import', temp_key_file],
+                    capture_output=True,
+                    timeout=10
+                )
+                
+                if result.returncode != 0:
+                    # Import might "fail" if key already exists
+                    pass
             
-            # Clean up temp file
-            Path(temp_key_file).unlink()
-            
-            if result.returncode != 0:
-                # Import might "fail" if key already exists
-                pass
+            finally:
+                # Clean up temp file securely
+                if temp_key_file and Path(temp_key_file).exists():
+                    Path(temp_key_file).unlink()
         
         except subprocess.TimeoutExpired:
             raise GPGError("GPG key import timed out")
@@ -170,9 +181,12 @@ def sign_with_gpg(file_path: Union[str, Path],
     if key_id:
         cmd.extend(['--local-user', key_id])
     
+    # Use passphrase-fd for better security (doesn't expose in process list)
+    passphrase_input = None
     if passphrase:
         cmd.extend(['--batch', '--yes', '--pinentry-mode', 'loopback', 
-                   '--passphrase', passphrase])
+                   '--passphrase-fd', '0'])
+        passphrase_input = passphrase.encode('utf-8')
     
     cmd.extend(['--output', str(output_path), str(file_path)])
     
@@ -180,6 +194,7 @@ def sign_with_gpg(file_path: Union[str, Path],
     try:
         result = subprocess.run(
             cmd,
+            input=passphrase_input,
             capture_output=True,
             timeout=30
         )
