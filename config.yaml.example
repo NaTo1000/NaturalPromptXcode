@@ -1,0 +1,58 @@
+# NaturalPromptXcode Configuration File
+# Copy this file to config.yaml and customize as needed
+
+# AI Model Configuration
+model:
+  # Provider: "openai", "local", or "anthropic"
+  provider: "openai"
+  
+  # Model name/identifier
+  name: "gpt-4"
+  
+  # Temperature (0.0 = deterministic, 1.0 = creative)
+  temperature: 0.7
+  
+  # Maximum tokens in response
+  max_tokens: 2000
+  
+  # API configuration
+  api_key_env: "OPENAI_API_KEY"
+  # api_base: "https://api.openai.com/v1"
+  
+  # Timeout and retry settings
+  timeout: 30
+  max_retries: 3
+
+# Build Configuration
+build:
+  # Default UI framework: "swiftui" or "uikit"
+  default_framework: "swiftui"
+  
+  # Default language: "swift" or "objective-c"
+  default_language: "swift"
+  
+  # Target iOS version
+  target_ios_version: "15.0"
+
+# Output Configuration
+output:
+  # Default output directory
+  default_dir: "./output"
+  
+  # Clean output directory before building
+  clean_before_build: true
+  
+  # Preserve generation metadata
+  preserve_metadata: true
+
+# Optional: Caching Configuration
+# cache:
+#   enabled: true
+#   directory: "./.cache/npx"
+#   ttl: 3600
+#   max_size: 100
+
+# Optional: Logging Configuration
+# logging:
+#   level: "INFO"
+#   file: "./logs/naturalpromptxcode.log"
