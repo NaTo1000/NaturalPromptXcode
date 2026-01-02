@@ -144,13 +144,15 @@ def sign_with_gpg(file_path: Union[str, Path],
     if private_key_data:
         temp_key_file = None
         try:
-            # Create temp file with secure permissions using mkstemp
-            fd, temp_key_file = tempfile.mkstemp(suffix='.key', prefix='gpg_key_')
+            # Create temp file with secure permissions
+            # Set restrictive umask before creating file to prevent race condition
+            old_umask = os.umask(0o077)  # Ensures files are created with 0o600
+            try:
+                fd, temp_key_file = tempfile.mkstemp(suffix='.key', prefix='gpg_key_')
+            finally:
+                os.umask(old_umask)  # Restore original umask
             
             try:
-                # Set secure permissions (0o600 = rw-------)
-                os.chmod(temp_key_file, 0o600)
-                
                 with os.fdopen(fd, 'w') as f:
                     f.write(private_key_data)
                 

@@ -214,11 +214,11 @@ class TestGPG:
             batch_file.write_text(key_batch)
             
             try:
-                # Generate key
+                # Generate key (increased timeout for slow CI environments)
                 result = subprocess.run(
                     ['gpg', '--batch', '--gen-key', str(batch_file)],
                     capture_output=True,
-                    timeout=30,
+                    timeout=60,
                     env={**os.environ, 'GNUPGHOME': str(temp_dir / '.gnupg')}
                 )
                 

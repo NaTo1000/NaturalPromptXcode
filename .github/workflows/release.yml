@@ -98,20 +98,22 @@ jobs:
           fi
           
           cd dist-artifacts
-          for file in *.tar.gz *.whl 2>/dev/null; do
-            if [ -f "$file" ]; then
-              echo "Signing $file..."
-              # Use passphrase-fd for better security (doesn't expose in process list)
-              echo "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
-                --passphrase-fd 0 \
-                ${GPG_KEY_ID:+--local-user "$GPG_KEY_ID"} \
-                --detach-sign --armor "$file"
-              
-              if [ -f "$file.asc" ]; then
-                echo "✓ Created signature: $file.asc"
-              else
-                echo "✗ Failed to create signature for $file"
-              fi
+          
+          # Use find to properly handle glob patterns
+          find . -maxdepth 1 -type f \( -name "*.tar.gz" -o -name "*.whl" \) | while read -r file; do
+            # Remove leading ./
+            file="${file#./}"
+            echo "Signing $file..."
+            # Use passphrase-fd for better security (doesn't expose in process list)
+            echo "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-fd 0 \
+              ${GPG_KEY_ID:+--local-user "$GPG_KEY_ID"} \
+              --detach-sign --armor "$file"
+            
+            if [ -f "$file.asc" ]; then
+              echo "✓ Created signature: $file.asc"
+            else
+              echo "✗ Failed to create signature for $file"
             fi
           done
       
@@ -121,8 +123,9 @@ jobs:
           cd dist-artifacts
           
           echo "=== Verifying SHA256 checksums ==="
-          for file in *.tar.gz *.whl 2>/dev/null; do
-            if [ -f "$file" ] && [ -f "$file.sha256" ]; then
+          find . -maxdepth 1 -type f \( -name "*.tar.gz" -o -name "*.whl" \) | while read -r file; do
+            file="${file#./}"
+            if [ -f "$file.sha256" ]; then
               if sha256sum -c "$file.sha256"; then
                 echo "✓ SHA256 verified: $file"
               else
@@ -134,7 +137,8 @@ jobs:
           
           echo ""
           echo "=== Verifying GPG signatures ==="
-          for file in *.tar.gz *.whl 2>/dev/null; do
+          find . -maxdepth 1 -type f \( -name "*.tar.gz" -o -name "*.whl" \) | while read -r file; do
+            file="${file#./}"
             if [ -f "$file.asc" ]; then
               if gpg --verify "$file.asc" "$file" 2>&1; then
                 echo "✓ GPG signature verified: $file"
