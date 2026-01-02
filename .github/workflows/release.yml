@@ -1,0 +1,175 @@
+name: Release and Sign Artifacts
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  release:
+    types: [created, published]
+
+jobs:
+  build-and-sign:
+    runs-on: ubuntu-latest
+    # Only run on trusted events (not on PRs from forks)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    
+    permissions:
+      contents: write  # For creating releases
+      actions: read
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install build wheel
+      
+      - name: Build distribution packages
+        run: |
+          python -m build
+          mkdir -p dist-artifacts
+          
+          # Copy built distributions
+          cp dist/*.tar.gz dist-artifacts/ 2>/dev/null || true
+          cp dist/*.whl dist-artifacts/ 2>/dev/null || true
+          
+          # If no distributions exist, create a simple archive
+          if [ ! "$(ls -A dist-artifacts)" ]; then
+            echo "No dist packages found, creating source archive..."
+            tar -czf dist-artifacts/naturalpromptxcode-source.tar.gz \
+              --exclude='.git' \
+              --exclude='__pycache__' \
+              --exclude='*.pyc' \
+              --exclude='.pytest_cache' \
+              --exclude='dist' \
+              --exclude='build' \
+              --exclude='*.egg-info' \
+              src/ requirements.txt setup.py README.md LICENSE
+          fi
+          
+          ls -lh dist-artifacts/
+      
+      - name: Generate SHA256 checksums
+        run: |
+          cd dist-artifacts
+          for file in *; do
+            if [ -f "$file" ]; then
+              sha256sum "$file" > "$file.sha256"
+              echo "Generated checksum for $file"
+              cat "$file.sha256"
+            fi
+          done
+      
+      - name: Import GPG key
+        if: github.event_name == 'push' || github.event_name == 'release'
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          if [ -z "$GPG_PRIVATE_KEY" ]; then
+            echo "⚠️  Warning: GPG_PRIVATE_KEY secret not set. Skipping GPG signing."
+            echo "To enable signing, add GPG_PRIVATE_KEY and GPG_PASSPHRASE secrets to your repository."
+            echo "See docs/SECURITY.md for instructions."
+            exit 0
+          fi
+          
+          echo "Importing GPG key..."
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          
+          # List imported keys (for debugging)
+          gpg --list-secret-keys
+      
+      - name: Sign artifacts with GPG
+        if: github.event_name == 'push' || github.event_name == 'release'
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: |
+          if [ -z "$GPG_PASSPHRASE" ] || ! gpg --list-secret-keys &>/dev/null; then
+            echo "⚠️  Warning: GPG key not configured. Skipping signing."
+            exit 0
+          fi
+          
+          cd dist-artifacts
+          
+          # Use find to properly handle glob patterns
+          find . -maxdepth 1 -type f \( -name "*.tar.gz" -o -name "*.whl" \) | while read -r file; do
+            # Remove leading ./
+            file="${file#./}"
+            echo "Signing $file..."
+            # Use passphrase-fd for better security (doesn't expose in process list)
+            echo "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-fd 0 \
+              ${GPG_KEY_ID:+--local-user "$GPG_KEY_ID"} \
+              --detach-sign --armor "$file"
+            
+            if [ -f "$file.asc" ]; then
+              echo "✓ Created signature: $file.asc"
+            else
+              echo "✗ Failed to create signature for $file"
+            fi
+          done
+      
+      - name: Verify signatures
+        if: github.event_name == 'push' || github.event_name == 'release'
+        run: |
+          cd dist-artifacts
+          
+          echo "=== Verifying SHA256 checksums ==="
+          find . -maxdepth 1 -type f \( -name "*.tar.gz" -o -name "*.whl" \) | while read -r file; do
+            file="${file#./}"
+            if [ -f "$file.sha256" ]; then
+              if sha256sum -c "$file.sha256"; then
+                echo "✓ SHA256 verified: $file"
+              else
+                echo "✗ SHA256 verification failed: $file"
+                exit 1
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "=== Verifying GPG signatures ==="
+          find . -maxdepth 1 -type f \( -name "*.tar.gz" -o -name "*.whl" \) | while read -r file; do
+            file="${file#./}"
+            if [ -f "$file.asc" ]; then
+              if gpg --verify "$file.asc" "$file" 2>&1; then
+                echo "✓ GPG signature verified: $file"
+              else
+                echo "✗ GPG signature verification failed: $file"
+                exit 1
+              fi
+            else
+              echo "⚠️  No signature found for $file (skipped)"
+            fi
+          done
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-release-artifacts
+          path: |
+            dist-artifacts/*
+            !dist-artifacts/*.pyc
+          retention-days: 90
+      
+      - name: Create Release (if tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist-artifacts/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

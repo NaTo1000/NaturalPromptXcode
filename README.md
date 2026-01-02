@@ -17,6 +17,7 @@ NaturalPromptXcode revolutionizes iOS app development by transforming natural la
 - **Xcode Integration**: Generates complete, buildable Xcode projects
 - **Customizable**: Configure AI models, output formats, and build settings
 - **Extensible**: Built on a modular architecture for easy customization
+- **Secure Releases**: SHA256 checksums and GPG signatures for artifact verification
 
 ## 📋 Prerequisites
 
@@ -87,6 +88,7 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[Architecture Overview](docs/ARCHITECTURE.md)**: System design and components
 - **[API Reference](docs/API_REFERENCE.md)**: Detailed API documentation
 - **[Contributing Guide](docs/CONTRIBUTING.md)**: How to contribute to the project
+- **[Security Guide](docs/SECURITY.md)**: SHA256 checksums and GPG signature verification
 
 ## 🏗️ Project Structure
 

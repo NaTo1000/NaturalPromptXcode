@@ -13,28 +13,39 @@ from .nlp.parser import PromptParser
 from .codegen.generator import CodeGenerator
 from .builder.xcode import XcodeProjectBuilder
 from .config import Config
+from .security.cli import add_security_commands
 
 
 def main():
     """Main entry point for the CLI."""
     parser = argparse.ArgumentParser(
-        description="Build iOS applications from natural language prompts"
+        description="Build iOS applications from natural language prompts",
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
-    parser.add_argument(
+    # Create subparsers for different commands
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    
+    # Default command: generate (for backward compatibility)
+    generate_parser = subparsers.add_parser(
+        'generate',
+        help='Generate iOS app from natural language prompt'
+    )
+    
+    generate_parser.add_argument(
         "prompt",
         type=str,
         help="Natural language description of the app to build"
     )
     
-    parser.add_argument(
+    generate_parser.add_argument(
         "--output-dir",
         type=str,
         default="./output",
         help="Directory to save generated project (default: ./output)"
     )
     
-    parser.add_argument(
+    generate_parser.add_argument(
         "--language",
         type=str,
         choices=["swift", "objective-c"],
@@ -42,7 +53,7 @@ def main():
         help="Target language (default: swift)"
     )
     
-    parser.add_argument(
+    generate_parser.add_argument(
         "--ui-framework",
         type=str,
         choices=["swiftui", "uikit"],
@@ -50,26 +61,51 @@ def main():
         help="UI framework (default: swiftui)"
     )
     
-    parser.add_argument(
+    generate_parser.add_argument(
         "--model",
         type=str,
         default="gpt-4",
         help="AI model to use (default: gpt-4)"
     )
     
-    parser.add_argument(
+    generate_parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable verbose output"
     )
     
-    parser.add_argument(
+    generate_parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Generate code without building"
     )
     
+    # Add security commands
+    add_security_commands(subparsers)
+    
+    # Parse arguments
     args = parser.parse_args()
+    
+    # Handle security commands
+    if hasattr(args, 'func'):
+        return args.func(args)
+    
+    # If no command specified, treat first arg as prompt for backward compatibility
+    if args.command is None:
+        # Backward compatibility: if no subcommand, assume generate
+        if len(sys.argv) > 1 and not sys.argv[1].startswith('-'):
+            # Parse again with generate as default (use copy to avoid modifying sys.argv)
+            argv_copy = sys.argv.copy()
+            argv_copy.insert(1, 'generate')
+            args = parser.parse_args(argv_copy[1:])
+        else:
+            parser.print_help()
+            return 1
+    
+    # Handle generate command
+    if args.command != 'generate':
+        parser.print_help()
+        return 1
     
     # Load configuration
     config = Config()
