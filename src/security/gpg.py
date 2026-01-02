@@ -142,18 +142,17 @@ def sign_with_gpg(file_path: Union[str, Path],
     
     # Import private key if provided
     if private_key_data:
+        temp_key_file = None
         try:
-            # Create temp file with secure permissions (0o600 = rw-------)
-            fd = os.open(
-                tempfile.gettempdir() + '/gpg_key_' + os.urandom(8).hex() + '.key',
-                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
-                0o600
-            )
-            temp_key_file = None
+            # Create temp file with secure permissions using mkstemp
+            fd, temp_key_file = tempfile.mkstemp(suffix='.key', prefix='gpg_key_')
+            
             try:
+                # Set secure permissions (0o600 = rw-------)
+                os.chmod(temp_key_file, 0o600)
+                
                 with os.fdopen(fd, 'w') as f:
                     f.write(private_key_data)
-                    temp_key_file = f.name
                 
                 result = subprocess.run(
                     ['gpg', '--batch', '--import', temp_key_file],
@@ -167,8 +166,8 @@ def sign_with_gpg(file_path: Union[str, Path],
             
             finally:
                 # Clean up temp file securely
-                if temp_key_file and Path(temp_key_file).exists():
-                    Path(temp_key_file).unlink()
+                if temp_key_file and os.path.exists(temp_key_file):
+                    os.unlink(temp_key_file)
         
         except subprocess.TimeoutExpired:
             raise GPGError("GPG key import timed out")

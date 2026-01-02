@@ -94,9 +94,10 @@ def main():
     if args.command is None:
         # Backward compatibility: if no subcommand, assume generate
         if len(sys.argv) > 1 and not sys.argv[1].startswith('-'):
-            # Parse again with generate as default
-            sys.argv.insert(1, 'generate')
-            args = parser.parse_args()
+            # Parse again with generate as default (use copy to avoid modifying sys.argv)
+            argv_copy = sys.argv.copy()
+            argv_copy.insert(1, 'generate')
+            args = parser.parse_args(argv_copy[1:])
         else:
             parser.print_help()
             return 1
