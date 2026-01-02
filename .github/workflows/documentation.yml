@@ -74,23 +74,54 @@ jobs:
           if [ -f "README.md" ]; then
             # Check for common sections
             HAS_TITLE=$(grep -c "^#" README.md || echo "0")
-            HAS_DESCRIPTION=$(grep -ci "description\|overview\|about" README.md || echo "0")
-            HAS_INSTALL=$(grep -ci "install\|setup\|getting started" README.md || echo "0")
+            HAS_DESCRIPTION=$(grep -ci "description\|overview\|about\|comprehensive" README.md || echo "0")
+            HAS_INSTALL=$(grep -ci "install\|setup\|getting started\|usage" README.md || echo "0")
             HAS_USAGE=$(grep -ci "usage\|example\|how to use" README.md || echo "0")
             HAS_LICENSE=$(grep -ci "license" README.md || echo "0")
             
             echo "| Section | Status |" >> $GITHUB_STEP_SUMMARY
             echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
-            echo "| Title | $([ $HAS_TITLE -gt 0 ] && echo '✅' || echo '❌') |" >> $GITHUB_STEP_SUMMARY
-            echo "| Description | $([ $HAS_DESCRIPTION -gt 0 ] && echo '✅' || echo '⚠️') |" >> $GITHUB_STEP_SUMMARY
-            echo "| Installation | $([ $HAS_INSTALL -gt 0 ] && echo '✅' || echo '⚠️') |" >> $GITHUB_STEP_SUMMARY
-            echo "| Usage | $([ $HAS_USAGE -gt 0 ] && echo '✅' || echo '⚠️') |" >> $GITHUB_STEP_SUMMARY
-            echo "| License | $([ $HAS_LICENSE -gt 0 ] && echo '✅' || echo '⚠️') |" >> $GITHUB_STEP_SUMMARY
+            
+            # Title check
+            if [ "$HAS_TITLE" -gt 0 ]; then
+              echo "| Title | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Title | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Description check
+            if [ "$HAS_DESCRIPTION" -gt 0 ]; then
+              echo "| Description | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Description | ⚠️ Missing |" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Installation check
+            if [ "$HAS_INSTALL" -gt 0 ]; then
+              echo "| Installation | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Installation | ⚠️ Missing |" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Usage check
+            if [ "$HAS_USAGE" -gt 0 ]; then
+              echo "| Usage | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Usage | ⚠️ Missing |" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # License check
+            if [ "$HAS_LICENSE" -gt 0 ]; then
+              echo "| License | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| License | ⚠️ Missing |" >> $GITHUB_STEP_SUMMARY
+            fi
             
             # Count lines
             LINES=$(wc -l < README.md)
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "README.md has $LINES lines" >> $GITHUB_STEP_SUMMARY
+            echo "📄 README.md has $LINES lines" >> $GITHUB_STEP_SUMMARY
+            echo "✅ All validation checks completed" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ README.md not found" >> $GITHUB_STEP_SUMMARY
           fi

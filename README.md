@@ -4,18 +4,258 @@
 [![Code Quality](https://github.com/NaTo1000/NaturalPromptXcode/actions/workflows/code-quality.yml/badge.svg)](https://github.com/NaTo1000/NaturalPromptXcode/actions/workflows/code-quality.yml)
 [![Documentation](https://github.com/NaTo1000/NaturalPromptXcode/actions/workflows/documentation.yml/badge.svg)](https://github.com/NaTo1000/NaturalPromptXcode/actions/workflows/documentation.yml)
 
-Natural language prompt to code for Xcode building commands to create the future.
+**Comprehensive Natural Language to Xcode Build Commands Framework**
 
-## Features
+A professional-grade Swift package that transforms natural language prompts into fully-configured Xcode build commands with comprehensive services for build configuration, testing, code signing, dependency management, archiving, and optimization.
 
-- 🚀 Dynamic CI/CD workflows with automatic project type detection
-- 🔍 Code quality checks and security scanning
-- 📦 Automated release management
-- 📊 Code metrics and repository health monitoring
-- 🔄 Scheduled maintenance and dependency checks
-- 📚 Automatic documentation generation
+## Comprehensive Architecture
 
-## CI/CD Workflows
+### Core Services
+
+NaturalPromptXcode provides a complete ecosystem of specialized services:
+
+- **BuildConfigurationService**: Manage Debug, Release, Profile, and Staging configurations with optimized build settings
+- **SchemeService**: Discover and manage Xcode schemes, build targets, and test targets
+- **DestinationService**: Handle all Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) with simulator support
+- **CodeSigningService**: Manage signing identities, provisioning profiles, and automatic/manual signing
+- **DependencyService**: Support for Swift Package Manager, CocoaPods, and Carthage
+- **ArchiveService**: Complete archive and export workflows for App Store, Ad-Hoc, Enterprise distribution
+- **TestingService**: Comprehensive testing with parallel execution, code coverage, and test plans
+- **BuildOptimizationService**: Analyze builds and provide optimization recommendations
+- **CommandExecutionService**: Execute and manage xcodebuild commands with validation
+- **CommandBuilder**: Integrate all services for comprehensive workflow generation
+
+## Key Features
+
+### 1. Natural Language Processing
+Convert plain English to complete Xcode workflows:
+```swift
+let processor = NaturalPromptXcode()
+
+// Simple commands
+let commands = processor.processPrompt("build the iOS app for iPhone 14")
+// Generates: dependency resolution, clean, optimized build with destination
+
+// Complex workflows
+let workflow = processor.processPrompt("test the app with code coverage on iPhone 15")
+// Generates: build-for-testing, test with coverage enabled, parallel execution
+```
+
+### 2. Comprehensive Build Management
+- **Multiple Configurations**: Debug, Release, Profile, Staging with optimized settings
+- **Platform Support**: iOS, macOS, tvOS, watchOS, visionOS (device and simulator)
+- **Smart Optimization**: Automatic build setting optimization based on configuration
+- **Dependency Management**: Auto-detect and resolve SPM, CocoaPods, Carthage dependencies
+
+### 3. Advanced Code Signing
+```swift
+let signing = processor.codeSigning
+
+// Automatic signing
+let autoSettings = signing.generateAutomaticSigningSettings(teamID: "ABC123")
+
+// Manual signing
+let manualSettings = signing.generateManualSigningSettings(
+    identity: "Apple Development",
+    profile: "UUID-HERE"
+)
+```
+
+### 4. Complete Testing Infrastructure
+```swift
+let testing = processor.testing
+
+// Unit tests with code coverage
+let unitTests = testing.generateUnitTestCommand(
+    project: "App.xcodeproj",
+    scheme: "App",
+    destination: "platform=iOS Simulator,name=iPhone 14"
+)
+
+// UI tests
+let uiTests = testing.generateUITestCommand(
+    project: "App.xcodeproj",
+    scheme: "App",
+    destination: "platform=iOS Simulator,name=iPhone 14",
+    testIdentifiers: ["AppUITests/testUserLogin"]
+)
+```
+
+### 5. Archive & Distribution
+```swift
+let archive = processor.archives
+
+// Complete archive and export workflow
+let exportOptions = ArchiveService.ExportOptions(
+    method: .appStore,
+    teamID: "ABC123",
+    provisioningProfiles: ["com.example.app": "Profile Name"],
+    compileBitcode: true,
+    uploadSymbols: true
+)
+
+let workflow = archive.generateCompleteWorkflow(
+    project: "App.xcworkspace",
+    scheme: "App",
+    outputDir: "./build",
+    options: exportOptions
+)
+```
+
+### 6. Build Optimization
+```swift
+let optimization = processor.optimization
+
+// Analyze build performance
+let metrics = BuildOptimizationService.BuildMetrics(
+    totalTime: 120,
+    compilationTime: 65,
+    linkingTime: 30,
+    codeSigningTime: 15,
+    parallelizationEfficiency: 0.55
+)
+
+let suggestions = optimization.analyzeBuild(metrics: metrics)
+// Returns actionable optimization recommendations
+```
+
+### 7. Command Execution & Validation
+```swift
+let execution = processor.execution
+
+// Execute single command
+let result = execution.execute("xcodebuild build")
+print("Success: \(result.success), Duration: \(result.duration)s")
+
+// Execute workflow
+let results = execution.executeSequence(commands, stopOnError: true)
+
+// Validate before execution
+let (isValid, issues) = execution.validateCommand(command)
+```
+
+## Comprehensive Usage Examples
+
+### Example 1: Full Build Workflow
+```swift
+import NaturalPromptXcode
+
+let processor = NaturalPromptXcode()
+
+// Generate comprehensive build workflow
+let commands = processor.generateComprehensiveBuildWorkflow(
+    project: "MyApp.xcworkspace",
+    scheme: "MyApp",
+    configuration: "Release",
+    destination: "platform=iOS Simulator,name=iPhone 14"
+)
+
+// Execute workflow
+let execution = processor.execution
+let results = execution.executeSequence(commands, stopOnError: true)
+
+for result in results {
+    print("\(result.command): \(result.success ? "✓" : "✗")")
+}
+```
+
+### Example 2: Comprehensive Test Suite
+```swift
+let testWorkflow = processor.generateComprehensiveTestWorkflow(
+    project: "MyApp.xcworkspace",
+    scheme: "MyApp",
+    destination: "platform=iOS Simulator,name=iPhone 15",
+    parallel: true,
+    codeCoverage: true
+)
+
+// Execute tests
+let testResults = processor.execution.executeSequence(testWorkflow)
+```
+
+### Example 3: Natural Language Processing
+```swift
+// Natural language to complete workflows
+let buildCommands = processor.processPrompt(
+    "build the release version for iPhone 14 Pro with code signing"
+)
+
+let testCommands = processor.processPrompt(
+    "run all tests with code coverage on iPad Pro"
+)
+
+let archiveCommands = processor.processPrompt(
+    "archive the app for App Store distribution"
+)
+```
+
+### Example 4: Service-Level Access
+```swift
+// Direct service access for fine-grained control
+let destinations = processor.destinations
+let allSimulators = destinations.allSimulatorDestinations()
+
+let schemes = processor.schemes
+let discoveredSchemes = schemes.discoverSchemes(at: "MyApp.xcodeproj")
+
+let dependencies = processor.dependencies
+let managers = dependencies.detectDependencyManagers(at: ".")
+```
+
+## CLI Tool Usage
+
+The included CLI tool provides command-line access to all functionality:
+
+```bash
+# Process natural language
+natural-prompt process "build the iOS app for release"
+
+# Detect projects
+natural-prompt detect
+
+# Show version
+natural-prompt version
+
+# Help
+natural-prompt help
+```
+
+## API Reference
+
+### Main Services
+
+#### NaturalPromptXcode
+- `processPrompt(_:)` - Convert natural language to commands
+- `processPromptDetailed(_:)` - Get commands with descriptions
+- `detectProjects(at:)` - Find Xcode projects
+- `generateBuildCommand(project:scheme:configuration:)` - Basic build command
+- `generateComprehensiveBuildWorkflow(...)` - Complete build workflow
+- `generateComprehensiveTestWorkflow(...)` - Complete test workflow
+
+#### BuildConfigurationService
+- `Configuration` enum: Debug, Release, Profile, Staging
+- `generateBuildSettings(for:)` - Generate configuration-specific settings
+- `availableConfigurations()` - List all configurations
+
+#### DestinationService
+- `Platform` enum: All Apple platforms + simulators
+- `commonDestinations(for:)` - Platform-specific destinations
+- `allSimulatorDestinations()` - All simulator destinations
+- `parseDestination(from:)` - Parse from natural language
+
+#### TestingService
+- `generateTestCommand(...)` - Full test command
+- `generateUITestCommand(...)` - UI test command
+- `generateUnitTestCommand(...)` - Unit test command
+- `parseTestResults(from:)` - Parse xcresult bundles
+
+#### ArchiveService
+- `ExportMethod` enum: appStore, adHoc, development, enterprise
+- `generateArchiveCommand(...)` - Archive command
+- `generateExportCommand(...)` - Export command
+- `generateCompleteWorkflow(...)` - Full archive & export
+
+## Dynamic CI/CD Workflows
 
 This repository includes comprehensive CI/CD workflows that automatically detect and test different project types:
 

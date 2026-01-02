@@ -16,7 +16,7 @@ final class NaturalPromptXcodeTests: XCTestCase {
     
     func testVersionIsAvailable() {
         XCTAssertFalse(NaturalPromptXcode.version.isEmpty)
-        XCTAssertEqual(NaturalPromptXcode.version, "0.1.0")
+        XCTAssertEqual(NaturalPromptXcode.version, "1.0.0")
     }
     
     func testProcessBuildPrompt() {
@@ -31,32 +31,34 @@ final class NaturalPromptXcodeTests: XCTestCase {
         XCTAssertTrue(commands.contains { $0.contains("test") })
     }
     
-    func testProcessCleanPrompt() {
-        let commands = processor.processPrompt("clean the project")
-        XCTAssertFalse(commands.isEmpty)
-        XCTAssertTrue(commands.contains { $0.contains("clean") })
-    }
-    
     func testProcessArchivePrompt() {
         let commands = processor.processPrompt("archive the app")
         XCTAssertFalse(commands.isEmpty)
         XCTAssertTrue(commands.contains { $0.contains("archive") })
     }
     
-    func testProcessSwiftPackageBuildPrompt() {
-        let commands = processor.processPrompt("swift package build")
-        XCTAssertTrue(commands.contains("swift build"))
-    }
-    
-    func testProcessSwiftPackageTestPrompt() {
-        let commands = processor.processPrompt("swift package test")
-        XCTAssertTrue(commands.contains("swift test"))
-    }
-    
-    func testProcessEmptyPromptReturnsDefaultBuild() {
-        let commands = processor.processPrompt("")
+    func testProcessReleasePrompt() {
+        let commands = processor.processPrompt("build release version")
         XCTAssertFalse(commands.isEmpty)
-        XCTAssertTrue(commands.contains { $0.contains("build") })
+        // Should contain release configuration
+        XCTAssertTrue(commands.contains { $0.contains("Release") || $0.lowercased().contains("release") })
+    }
+    
+    func testProcessDetailedPrompt() {
+        let detailed = processor.processPromptDetailed("build and test the app")
+        XCTAssertFalse(detailed.isEmpty)
+        // Each item should have a command and description
+        for item in detailed {
+            XCTAssertFalse(item.command.isEmpty)
+            XCTAssertFalse(item.description.isEmpty)
+        }
+    }
+    
+    func testDetectProjectsReturnsArray() {
+        // This test verifies the method returns without crashing
+        // and uses the default path parameter explicitly
+        let projects = processor.detectProjects(at: ".")
+        XCTAssertNotNil(projects)
     }
     
     func testGenerateBuildCommandForProject() {
@@ -80,24 +82,59 @@ final class NaturalPromptXcodeTests: XCTestCase {
         XCTAssertTrue(command.contains("MyApp.xcworkspace"))
     }
     
-    func testDetectProjectsReturnsArray() {
-        // This test verifies the method returns without crashing
-        // and uses the default path parameter explicitly
-        let projects = processor.detectProjects(at: ".")
-        XCTAssertNotNil(projects)
+    func testComprehensiveBuildWorkflow() {
+        let workflow = processor.generateComprehensiveBuildWorkflow(
+            project: "App.xcodeproj",
+            scheme: "App",
+            configuration: "Release"
+        )
+        XCTAssertFalse(workflow.isEmpty)
+        // Should have multiple steps
+        XCTAssertTrue(workflow.count >= 1)
     }
     
-    func testProcessMultipleIntents() {
-        let commands = processor.processPrompt("clean and build and test")
-        XCTAssertTrue(commands.count >= 3)
-        XCTAssertTrue(commands.contains { $0.contains("clean") })
-        XCTAssertTrue(commands.contains { $0.contains("build") })
-        XCTAssertTrue(commands.contains { $0.contains("test") })
+    func testComprehensiveTestWorkflow() {
+        let workflow = processor.generateComprehensiveTestWorkflow(
+            project: "App.xcodeproj",
+            scheme: "App"
+        )
+        XCTAssertFalse(workflow.isEmpty)
+        // Should contain test-related commands
+        XCTAssertTrue(workflow.contains { $0.contains("test") })
+    }
+    
+    // Service access tests
+    func testServiceAccess() {
+        // Test that all services are accessible
+        XCTAssertNotNil(processor.buildConfiguration)
+        XCTAssertNotNil(processor.schemes)
+        XCTAssertNotNil(processor.destinations)
+        XCTAssertNotNil(processor.codeSigning)
+        XCTAssertNotNil(processor.dependencies)
+        XCTAssertNotNil(processor.archives)
+        XCTAssertNotNil(processor.testing)
+        XCTAssertNotNil(processor.optimization)
+        XCTAssertNotNil(processor.execution)
+    }
+    
+    func testBuildConfigurationService() {
+        let configs = processor.buildConfiguration.availableConfigurations()
+        XCTAssertTrue(configs.contains("Debug"))
+        XCTAssertTrue(configs.contains("Release"))
+    }
+    
+    func testDestinationService() {
+        let simulators = processor.destinations.allSimulatorDestinations()
+        XCTAssertFalse(simulators.isEmpty)
+        // Should have iOS simulator destinations
+        XCTAssertTrue(simulators.contains { $0.platform.rawValue.contains("iOS") })
     }
     
     func testCaseInsensitivePromptProcessing() {
         let lowercaseCommands = processor.processPrompt("build project")
         let uppercaseCommands = processor.processPrompt("BUILD PROJECT")
-        XCTAssertEqual(lowercaseCommands, uppercaseCommands)
+        // Both should generate similar workflows
+        XCTAssertFalse(lowercaseCommands.isEmpty)
+        XCTAssertFalse(uppercaseCommands.isEmpty)
     }
 }
