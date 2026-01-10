@@ -1,6 +1,6 @@
 """Code generation module."""
 
-from typing import List, Dict, Any, Generator
+from typing import List, Dict, Any
 from dataclasses import dataclass, field
 
 from ..nlp.parser import AppRequirements
@@ -9,6 +9,7 @@ from ..nlp.parser import AppRequirements
 @dataclass
 class ProjectFile:
     """Represents a file in the generated project."""
+
     path: str
     content: str
     file_type: str  # "swift", "plist", "storyboard", etc.
@@ -17,6 +18,7 @@ class ProjectFile:
 @dataclass
 class ProjectStructure:
     """Complete project structure with all files."""
+
     name: str
     files: List[ProjectFile] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -24,77 +26,79 @@ class ProjectStructure:
 
 class CodeGenerator:
     """Generate iOS code from structured requirements."""
-    
+
     def __init__(self, config):
         """
         Initialize the code generator.
-        
+
         Args:
             config: Configuration object
         """
         self.config = config
         # Pre-compile template patterns for performance
         self._template_cache = {}
-    
+
     def generate(self, requirements: AppRequirements) -> ProjectStructure:
         """
         Generate complete project structure from requirements.
-        
+
         Args:
             requirements: Parsed app requirements
-            
+
         Returns:
             ProjectStructure with all generated files
         """
         if self.config.verbose:
             print(f"      Generating code for {requirements.app_name}")
-        
+
         project = ProjectStructure(
             name=requirements.app_name,
             metadata={
                 "framework": requirements.ui_framework,
                 "language": self.config.language,
-                "ios_version": self.config.target_ios_version
-            }
+                "ios_version": self.config.target_ios_version,
+            },
         )
-        
+
         # Generate files efficiently using lazy evaluation if possible
         files_to_generate = []
-        
+
         # Generate main app file
         if requirements.ui_framework == "swiftui":
-            files_to_generate.append(('swiftui_app', requirements))
-            files_to_generate.append(('swiftui_content_view', requirements))
+            files_to_generate.append(("swiftui_app", requirements))
+            files_to_generate.append(("swiftui_content_view", requirements))
         else:
-            files_to_generate.append(('uikit_app_delegate', requirements))
-            files_to_generate.append(('uikit_view_controller', requirements))
-        
+            files_to_generate.append(("uikit_app_delegate", requirements))
+            files_to_generate.append(("uikit_view_controller", requirements))
+
         # Generate Info.plist
-        files_to_generate.append(('info_plist', requirements))
-        
+        files_to_generate.append(("info_plist", requirements))
+
         # Generate files in batch for better performance
         for file_type, req in files_to_generate:
             file = self._generate_file(file_type, req)
             if file:
                 project.files.append(file)
-        
+
         return project
-    
-    def _generate_file(self, file_type: str, requirements: AppRequirements) -> ProjectFile:
+
+    def _generate_file(
+        self, file_type: str, requirements: AppRequirements
+    ) -> ProjectFile:
         """Generate a single file based on type."""
         generators = {
-            'swiftui_app': self._generate_swiftui_app,
-            'swiftui_content_view': self._generate_swiftui_content_view,
-            'uikit_app_delegate': self._generate_uikit_app_delegate,
-            'uikit_view_controller': self._generate_uikit_view_controller,
-            'info_plist': self._generate_info_plist
+            "swiftui_app": self._generate_swiftui_app,
+            "swiftui_content_view": self._generate_swiftui_content_view,
+            "uikit_app_delegate": self._generate_uikit_app_delegate,
+            "uikit_view_controller": self._generate_uikit_view_controller,
+            "info_plist": self._generate_info_plist,
         }
-        
+
         generator = generators.get(file_type)
         if generator:
             return generator(requirements)
         return None
-    
+
     def _generate_swiftui_app(self, requirements: AppRequirements) -> ProjectFile:
         """Generate SwiftUI App file."""
         content = f"""import SwiftUI
@@ -109,16 +113,16 @@ struct {requirements.app_name}: App {{
 }}
 """
         return ProjectFile(
-            path=f"{requirements.app_name}App.swift",
-            content=content,
-            file_type="swift"
+            path=f"{requirements.app_name}App.swift", content=content, file_type="swift"
         )
-    
-    def _generate_swiftui_content_view(self, requirements: AppRequirements) -> ProjectFile:
+
+    def _generate_swiftui_content_view(
+        self, requirements: AppRequirements
+    ) -> ProjectFile:
         """Generate SwiftUI ContentView."""
         # Generate based on features
         view_code = self._generate_view_code(requirements)
-        
+
         content = f"""import SwiftUI
 
 struct ContentView: View {{
@@ -131,12 +135,8 @@ struct ContentView_Previews: PreviewProvider {{
     }}
 }}
 """
-        return ProjectFile(
-            path="ContentView.swift",
-            content=content,
-            file_type="swift"
-        )
-    
+        return ProjectFile(path="ContentView.swift", content=content, file_type="swift")
+
     def _generate_view_code(self, requirements: AppRequirements) -> str:
         """Generate view code based on features."""
         if not requirements.features:
@@ -144,9 +144,9 @@ struct ContentView_Previews: PreviewProvider {{
         Text("Hello, World!")
             .padding()
     }"""
-        
+
         feature = requirements.features[0]
-        
+
         if feature.name == "Counter":
             return """    @State private var count = 0
     
@@ -174,7 +174,7 @@ struct ContentView_Previews: PreviewProvider {{
         }
         .padding()
     }"""
-        
+
         elif feature.name == "WeatherDisplay":
             return """    @State private var temperature = "72°F"
     @State private var condition = "Sunny"
@@ -195,7 +195,7 @@ struct ContentView_Previews: PreviewProvider {{
         }
         .padding()
     }"""
-        
+
         else:
             return f"""    var body: some View {{
         VStack {{
@@ -204,30 +204,42 @@ struct ContentView_Previews: PreviewProvider {{
                 .padding()
         }}
     }}"""
-    
-    def _generate_uikit_app_delegate(self, requirements: AppRequirements) -> ProjectFile:
+
+    def _generate_uikit_app_delegate(
+        self, requirements: AppRequirements
+    ) -> ProjectFile:
         """Generate UIKit AppDelegate."""
-        content = f"""import UIKit
+        content = """import UIKit
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {{
+class AppDelegate: UIResponder, UIApplicationDelegate {
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {{
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [
+            UIApplication.LaunchOptionsKey: Any
+        ]?
+    ) -> Bool {
         return true
-    }}
+    }
 
-    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {{
-        return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
-    }}
-}}
-"""
-        return ProjectFile(
-            path="AppDelegate.swift",
-            content=content,
-            file_type="swift"
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        return UISceneConfiguration(
+            name: "Default Configuration",
+            sessionRole: connectingSceneSession.role
         )
-    
-    def _generate_uikit_view_controller(self, requirements: AppRequirements) -> ProjectFile:
+    }
+}
+"""
+        return ProjectFile(path="AppDelegate.swift", content=content, file_type="swift")
+
+    def _generate_uikit_view_controller(
+        self, requirements: AppRequirements
+    ) -> ProjectFile:
         """Generate UIKit ViewController."""
         content = f"""import UIKit
 
@@ -252,15 +264,17 @@ class ViewController: UIViewController {{
 }}
 """
         return ProjectFile(
-            path="ViewController.swift",
-            content=content,
-            file_type="swift"
+            path="ViewController.swift", content=content, file_type="swift"
         )
-    
+
     def _generate_info_plist(self, requirements: AppRequirements) -> ProjectFile:
         """Generate Info.plist file."""
+        plist_doctype = (
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" '
+            '"http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+        )
         content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+{plist_doctype}
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
@@ -296,8 +310,4 @@ class ViewController: UIViewController {{
 </dict>
 </plist>
 """
-        return ProjectFile(
-            path="Info.plist",
-            content=content,
-            file_type="plist"
-        )
+        return ProjectFile(path="Info.plist", content=content, file_type="plist")
