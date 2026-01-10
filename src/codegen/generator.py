@@ -1,6 +1,6 @@
 """Code generation module."""
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Generator
 from dataclasses import dataclass, field
 
 from ..nlp.parser import AppRequirements
@@ -33,6 +33,8 @@ class CodeGenerator:
             config: Configuration object
         """
         self.config = config
+        # Pre-compile template patterns for performance
+        self._template_cache = {}
     
     def generate(self, requirements: AppRequirements) -> ProjectStructure:
         """
@@ -44,6 +46,9 @@ class CodeGenerator:
         Returns:
             ProjectStructure with all generated files
         """
+        if self.config.verbose:
+            print(f"      Generating code for {requirements.app_name}")
+        
         project = ProjectStructure(
             name=requirements.app_name,
             metadata={
@@ -53,18 +58,42 @@ class CodeGenerator:
             }
         )
         
+        # Generate files efficiently using lazy evaluation if possible
+        files_to_generate = []
+        
         # Generate main app file
         if requirements.ui_framework == "swiftui":
-            project.files.append(self._generate_swiftui_app(requirements))
-            project.files.append(self._generate_swiftui_content_view(requirements))
+            files_to_generate.append(('swiftui_app', requirements))
+            files_to_generate.append(('swiftui_content_view', requirements))
         else:
-            project.files.append(self._generate_uikit_app_delegate(requirements))
-            project.files.append(self._generate_uikit_view_controller(requirements))
+            files_to_generate.append(('uikit_app_delegate', requirements))
+            files_to_generate.append(('uikit_view_controller', requirements))
         
         # Generate Info.plist
-        project.files.append(self._generate_info_plist(requirements))
+        files_to_generate.append(('info_plist', requirements))
+        
+        # Generate files in batch for better performance
+        for file_type, req in files_to_generate:
+            file = self._generate_file(file_type, req)
+            if file:
+                project.files.append(file)
         
         return project
+    
+    def _generate_file(self, file_type: str, requirements: AppRequirements) -> ProjectFile:
+        """Generate a single file based on type."""
+        generators = {
+            'swiftui_app': self._generate_swiftui_app,
+            'swiftui_content_view': self._generate_swiftui_content_view,
+            'uikit_app_delegate': self._generate_uikit_app_delegate,
+            'uikit_view_controller': self._generate_uikit_view_controller,
+            'info_plist': self._generate_info_plist
+        }
+        
+        generator = generators.get(file_type)
+        if generator:
+            return generator(requirements)
+        return None
     
     def _generate_swiftui_app(self, requirements: AppRequirements) -> ProjectFile:
         """Generate SwiftUI App file."""

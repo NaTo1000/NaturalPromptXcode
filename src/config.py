@@ -30,12 +30,20 @@ class Config:
         self.clean_before_build = True
         self.verbose = False
         
+        # Performance optimization settings
+        self.enable_caching = True
+        self.cache_dir = "./.cache/npx"
+        self.batch_file_operations = True
+        
         # Load from file if provided
         if config_file and Path(config_file).exists():
             self._load_from_file(config_file)
         
         # Override with environment variables
         self._load_from_env()
+        
+        # Validate configuration
+        self._validate_config()
     
     def _load_from_file(self, config_file: str):
         """Load configuration from YAML file."""
@@ -67,3 +75,23 @@ class Config:
         
         if 'NPX_OUTPUT_DIR' in os.environ:
             self.output_dir = os.environ['NPX_OUTPUT_DIR']
+    
+    def _validate_config(self):
+        """Validate configuration for early error detection."""
+        # Validate UI framework
+        valid_frameworks = ["swiftui", "uikit"]
+        if self.ui_framework not in valid_frameworks:
+            raise ValueError(f"Invalid UI framework: {self.ui_framework}. Must be one of {valid_frameworks}")
+        
+        # Validate language
+        valid_languages = ["swift", "objective-c"]
+        if self.language not in valid_languages:
+            raise ValueError(f"Invalid language: {self.language}. Must be one of {valid_languages}")
+        
+        # Validate temperature
+        if not 0.0 <= self.temperature <= 1.0:
+            raise ValueError(f"Invalid temperature: {self.temperature}. Must be between 0.0 and 1.0")
+        
+        # Validate max_tokens
+        if self.max_tokens <= 0:
+            raise ValueError(f"Invalid max_tokens: {self.max_tokens}. Must be positive")

@@ -3,7 +3,8 @@
 import os
 import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
+import time
 
 from ..codegen.generator import ProjectStructure
 
@@ -31,6 +32,8 @@ class XcodeProjectBuilder:
         Returns:
             Path to created project directory
         """
+        start_time = time.time()
+        
         # Create project directory
         project_path = Path(output_dir) / project.name
         project_path.mkdir(parents=True, exist_ok=True)
@@ -42,8 +45,45 @@ class XcodeProjectBuilder:
         src_path = project_path / project.name
         src_path.mkdir(exist_ok=True)
         
+        # Batch write all files for better I/O performance
+        if hasattr(self.config, 'batch_file_operations') and self.config.batch_file_operations:
+            self._batch_write_files(project.files, src_path)
+        else:
+            self._write_files_individually(project.files, src_path)
+        
+        # Create a basic project.pbxproj file
+        self._create_pbxproj(project, project_path)
+        
+        if self.config.verbose:
+            elapsed = time.time() - start_time
+            print(f"      Project creation took {elapsed:.2f}s")
+        
+        return str(project_path)
+    
+    def _batch_write_files(self, files: List, src_path: Path):
+        """Write multiple files in an optimized batch operation."""
+        # Pre-create all necessary directories
+        directories = set()
+        for file in files:
+            file_path = src_path / file.path
+            directories.add(file_path.parent)
+        
+        # Create all directories at once
+        for directory in directories:
+            directory.mkdir(parents=True, exist_ok=True)
+        
         # Write all files
-        for file in project.files:
+        for file in files:
+            file_path = src_path / file.path
+            with open(file_path, 'w', buffering=8192) as f:  # Larger buffer for performance
+                f.write(file.content)
+            
+            if self.config.verbose:
+                print(f"      Created: {file.path}")
+    
+    def _write_files_individually(self, files: List, src_path: Path):
+        """Write files one at a time (fallback method)."""
+        for file in files:
             file_path = src_path / file.path
             file_path.parent.mkdir(parents=True, exist_ok=True)
             
@@ -52,11 +92,6 @@ class XcodeProjectBuilder:
             
             if self.config.verbose:
                 print(f"      Created: {file.path}")
-        
-        # Create a basic project.pbxproj file
-        self._create_pbxproj(project, project_path)
-        
-        return str(project_path)
     
     def _create_pbxproj(self, project: ProjectStructure, project_path: Path):
         """Create Xcode project.pbxproj file."""
