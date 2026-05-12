@@ -1,0 +1,29 @@
+# Kustomization for NaturalPromptXcode.
+#
+# Deploy with:
+#   kubectl apply -k k8s/
+#
+# Override the image tag without editing manifests, e.g.:
+#   cd k8s && kustomize edit set image naturalpromptxcode=ghcr.io/nato1000/naturalpromptxcode:0.1.0
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: naturalpromptxcode
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+
+# Note: secret.example.yaml and job.example.yaml are intentionally excluded.
+# Create the real Secret out-of-band and submit Jobs ad-hoc.
+
+images:
+  - name: naturalpromptxcode
+    newTag: latest
+
+commonLabels:
+  app.kubernetes.io/name: naturalpromptxcode
+  app.kubernetes.io/part-of: naturalpromptxcode

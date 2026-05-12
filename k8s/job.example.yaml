@@ -1,0 +1,84 @@
+# Example one-shot Job that generates an iOS project from a prompt.
+# Submit with:
+#
+#   kubectl -n naturalpromptxcode create -f k8s/job.example.yaml
+#
+# Customise the PROMPT argument or templatize this with kustomize/helm.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: npx-generate-
+  namespace: naturalpromptxcode
+  labels:
+    app.kubernetes.io/name: naturalpromptxcode
+    app.kubernetes.io/component: job
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: naturalpromptxcode
+        app.kubernetes.io/component: job
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: npx
+          image: naturalpromptxcode:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - "generate"
+            - "A simple todo list app with SwiftUI"
+            - "--output"
+            - "/data/output"
+          env:
+            - name: NPX_CONFIG
+              value: /etc/naturalpromptxcode/config.yaml
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: npx-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: npx-secrets
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/naturalpromptxcode
+              readOnly: true
+            - name: output
+              mountPath: /data/output
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: npx-config
+        - name: output
+          persistentVolumeClaim:
+            claimName: npx-output
+        - name: tmp
+          emptyDir: {}

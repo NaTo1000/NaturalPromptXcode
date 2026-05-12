@@ -1,0 +1,34 @@
+# Docker Compose definition for NaturalPromptXcode.
+#
+# Usage:
+#   docker compose build
+#   docker compose run --rm npx generate "A todo list app" --output /data/output
+#
+# Provide secrets via a local .env file (see .env.example) or your shell.
+
+services:
+  npx:
+    image: naturalpromptxcode:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # docker compose v2 honours the buildx builder for multi-arch builds.
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    container_name: naturalpromptxcode
+    environment:
+      # Secrets are read from the environment, not baked into the image.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      NPX_CONFIG: /etc/naturalpromptxcode/config.yaml
+      NPX_OUTPUT_DIR: /data/output
+    volumes:
+      # Persist generated projects on the host.
+      - ./output:/data/output
+      # Optional: mount a custom config file.
+      - ./config.yaml:/etc/naturalpromptxcode/config.yaml:ro
+    # CLI tool: keep stdin/tty so `docker compose run` is interactive.
+    stdin_open: true
+    tty: true
+    restart: "no"

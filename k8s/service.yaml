@@ -1,0 +1,25 @@
+# Headless Service used to address pods of the Deployment via stable DNS
+# (e.g. for `kubectl exec` workflows or future sidecar integrations).
+# NaturalPromptXcode is a CLI and does not yet expose an HTTP port, but the
+# Kubernetes API requires `spec.ports` to contain at least one entry, so a
+# placeholder port is declared. Replace it (and the `port`/`targetPort`
+# values) once an HTTP surface is added.
+apiVersion: v1
+kind: Service
+metadata:
+  name: naturalpromptxcode
+  namespace: naturalpromptxcode
+  labels:
+    app.kubernetes.io/name: naturalpromptxcode
+    app.kubernetes.io/component: cli
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: naturalpromptxcode
+    app.kubernetes.io/component: cli
+  ports:
+    # Placeholder: required by the Service schema; not bound by the pod today.
+    - name: placeholder
+      port: 8080
+      targetPort: 8080
