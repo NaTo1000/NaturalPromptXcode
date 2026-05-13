@@ -1,0 +1,71 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Local config and secrets (do NOT bake into the image)
+config.yaml
+.env
+.env.*
+
+# Generated output should never be baked into the image
+output/
+.cache/
+logs/
+
+# Docs and examples we don't need at runtime
+docs/
+examples/
+tests/
+
+# Container / k8s files themselves
+Dockerfile
+.dockerignore
+docker-compose*.yml
+k8s/
+scripts/

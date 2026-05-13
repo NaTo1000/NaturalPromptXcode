@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: npx-output
+  namespace: naturalpromptxcode
+  labels:
+    app.kubernetes.io/name: naturalpromptxcode
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  # storageClassName: standard   # uncomment and set to match your cluster
